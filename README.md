@@ -1,2 +1,2 @@
 # filewatcherpp
- an easy-to-use cross platform filewatcher in C++
+ an easy-to-use cross platform file watcher for C++
