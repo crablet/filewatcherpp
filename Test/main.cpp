@@ -93,6 +93,19 @@ FileWatchLinux& FileWatchLinux::FilterByExtension(Behavior b, const std::string 
 
 FileWatchLinux& FileWatchLinux::FilterByFilename(Behavior b, const std::string &name)
 {
+    auto filter = [&](const std::string &currentName)
+    {
+        if (b == Behavior::Include)
+        {
+            return currentName == name;
+        }
+        else
+        {
+            return false;
+        }
+    };
+    detailMap[currentPath].filterVec.emplace_back(filter);
+
     return *this;
 }
 
