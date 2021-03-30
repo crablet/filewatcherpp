@@ -15,6 +15,7 @@
 enum class Behavior
 {
     Include,
+    Exclude,
     Normal  // 仅仅为了编译通过
 };
 
@@ -68,7 +69,7 @@ FileWatchLinux& FileWatchLinux::FilterByExtension(Behavior b, const std::string 
         }
         else
         {
-            if (b == Behavior::Include)
+            const auto endsWith = [&]()
             {
                 for (std::size_t i = name.size() - ext.size(); i < name.size(); ++i)
                 {
@@ -79,6 +80,15 @@ FileWatchLinux& FileWatchLinux::FilterByExtension(Behavior b, const std::string 
                 }
 
                 return true;
+            }();
+
+            if (b == Behavior::Include)
+            {
+                return endsWith;
+            }
+            else if (b == Behavior::Exclude)
+            {
+                return !endsWith;
             }
             else
             {
@@ -95,9 +105,14 @@ FileWatchLinux& FileWatchLinux::FilterByFilename(Behavior b, const std::string &
 {
     auto filter = [&](const std::string &currentName)
     {
+        const auto equal = currentName == name;
         if (b == Behavior::Include)
         {
-            return currentName == name;
+            return equal;
+        }
+        else if (b == Behavior::Exclude)
+        {
+            return !equal;
         }
         else
         {
