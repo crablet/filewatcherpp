@@ -24,7 +24,7 @@ enum class Behavior
     Normal  // 仅仅为了编译通过
 };
 
-class FileWatchLinux
+class FileWatchBase
 {
     struct ActionDetails
     {
@@ -34,35 +34,29 @@ class FileWatchLinux
     };
 
 public:
-    FileWatchLinux();
-    ~FileWatchLinux();
+    FileWatchBase();
+    virtual ~FileWatchBase() = default;
 
-    FileWatchLinux& Watch(const std::string &path);
-    FileWatchLinux& FilterByExtension(Behavior b, const std::string &ext);
-    FileWatchLinux& FilterByFilename(Behavior b, const std::string &name);
+    FileWatchBase& Watch(const std::string &path);
+    FileWatchBase& FilterByExtension(Behavior b, const std::string &ext);
+    FileWatchBase& FilterByFilename(Behavior b, const std::string &name);
 
-    template<typename Func>
-    FileWatchLinux& OnCreate(Func f);
+    virtual FileWatchBase& OnCreate(std::function<void(const std::string)> f) = 0;
+    virtual FileWatchBase& OnDelete(std::function<void(const std::string)> f) = 0;
+    virtual FileWatchBase& OnAccess(std::function<void(const std::string)> f) = 0;
 
-    template <typename Func>
-    FileWatchLinux& OnDelete(Func f);
-
-    template <typename Func>
-    FileWatchLinux& OnAccess(Func f);
-
-    void Start(Behavior b);
+    virtual void Start(Behavior b) = 0;
     void Stop();
 
-private:
+protected:
     std::vector<std::string> watchVec;
     std::unordered_map<std::string, ActionDetails> detailMap;
     std::vector<int> wdVec;
-    int fd;
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
     std::atomic_bool running;
 };
 
-FileWatchLinux& FileWatchLinux::Watch(const std::string &path)
+FileWatchBase& FileWatchBase::Watch(const std::string &path)
 {
     watchVec.push_back(path);
     detailMap[path].name = path;
@@ -71,7 +65,7 @@ FileWatchLinux& FileWatchLinux::Watch(const std::string &path)
     return *this;
 }
 
-FileWatchLinux& FileWatchLinux::FilterByExtension(Behavior b, const std::string &ext)
+FileWatchBase& FileWatchBase::FilterByExtension(Behavior b, const std::string &ext)
 {
     auto filter = [&](const std::string &name) -> bool
     {
@@ -113,7 +107,7 @@ FileWatchLinux& FileWatchLinux::FilterByExtension(Behavior b, const std::string 
     return *this;
 }
 
-FileWatchLinux& FileWatchLinux::FilterByFilename(Behavior b, const std::string &name)
+FileWatchBase& FileWatchBase::FilterByFilename(Behavior b, const std::string &name)
 {
     auto filter = [&](const std::string &currentName) -> bool
     {
@@ -136,13 +130,31 @@ FileWatchLinux& FileWatchLinux::FilterByFilename(Behavior b, const std::string &
     return *this;
 }
 
-template<typename Func>
-FileWatchLinux& FileWatchLinux::OnCreate(Func f)
+FileWatchBase::FileWatchBase()
+        : running{false}
 {
-    detailMap[currentPath].actionMap[IN_CREATE] = std::move(f);
-
-    return *this;
 }
+
+void FileWatchBase::Stop()
+{
+    running = false;
+}
+
+class FileWatchLinux : public FileWatchBase
+{
+public:
+    FileWatchLinux();
+    ~FileWatchLinux() override;
+
+    FileWatchBase& OnCreate(std::function<void(const std::string)> f) override;
+    FileWatchBase& OnDelete(std::function<void(const std::string)> f) override;
+    FileWatchBase& OnAccess(std::function<void(const std::string)> f) override;
+
+    void Start(Behavior b) override;
+
+private:
+    int fd;
+};
 
 void FileWatchLinux::Start(Behavior b)
 {
@@ -169,33 +181,38 @@ void FileWatchLinux::Start(Behavior b)
                 {
                     for (auto &r : detailMap)
                     {
-                        r.second.actionMap[IN_CREATE](name);
+                        auto fPtr = r.second.actionMap.find(IN_CREATE);
+                        if (fPtr != r.second.actionMap.end())
+                        {
+                            fPtr->second(name);
+                        }
                     }
                 }
                 else if (event->mask & IN_DELETE)
                 {
                     for (auto &r : detailMap)
                     {
-                        r.second.actionMap[IN_DELETE](name);
-                    }
+                        auto fPtr = r.second.actionMap.find(IN_DELETE);
+                        if (fPtr != r.second.actionMap.end())
+                        {
+                            fPtr->second(name);
+                        }                    }
                 }
                 else if (event->mask & IN_ACCESS)
                 {
                     for (auto &r : detailMap)
                     {
-                        r.second.actionMap[IN_ACCESS](name);
-                    }
+                        auto fPtr = r.second.actionMap.find(IN_ACCESS);
+                        if (fPtr != r.second.actionMap.end())
+                        {
+                            fPtr->second(name);
+                        }                    }
                 }
                 p += sizeof(inotify_event) + event->len;
             }
         }
     });
     filewatcherThread.detach();
-}
-
-FileWatchLinux::FileWatchLinux()
-        : fd{inotify_init()}, running{false}
-{
 }
 
 FileWatchLinux::~FileWatchLinux()
@@ -208,35 +225,42 @@ FileWatchLinux::~FileWatchLinux()
     close(fd);
 }
 
-void FileWatchLinux::Stop()
+FileWatchBase &FileWatchLinux::OnCreate(std::function<void(const std::string)> f)
 {
-    running = false;
+    detailMap[currentPath].actionMap[IN_CREATE] = std::move(f);
+
+    return *this;
 }
 
-template <typename Func>
-FileWatchLinux &FileWatchLinux::OnDelete(Func f)
+FileWatchBase &FileWatchLinux::OnDelete(std::function<void(const std::string)> f)
 {
     detailMap[currentPath].actionMap[IN_DELETE] = std::move(f);
 
     return *this;
 }
 
-template <typename Func>
-FileWatchLinux &FileWatchLinux::OnAccess(Func f)
+FileWatchBase &FileWatchLinux::OnAccess(std::function<void(const std::string)> f)
 {
     detailMap[currentPath].actionMap[IN_ACCESS] = std::move(f);
 
-    return *this;}
+    return *this;
+}
+
+FileWatchLinux::FileWatchLinux()
+    : fd{inotify_init()}
+{
+}
+
 
 int main()
 {
     FileWatchLinux fileWatch{};
     fileWatch.Watch("/home/crablet/桌面/test/")
-            .FilterByExtension(Behavior::Include, ".txt")
-            .OnCreate([](const std::string &name)
+             .FilterByExtension(Behavior::Include, ".txt")
+             .OnCreate([](const std::string &name)
                       { std::cout << name << '\n'; })
              .Start(Behavior::Normal);
-    std::this_thread::sleep_for(1min);
+    std::this_thread::sleep_for(5s);
     fileWatch.Stop();
 
     return 0;
