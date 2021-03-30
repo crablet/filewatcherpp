@@ -10,9 +10,12 @@
 #include <functional>
 #include <thread>
 #include <atomic>
+#include <chrono>
 
 #include <sys/inotify.h>
 #include <unistd.h>
+
+using namespace std::literals;
 
 enum class Behavior
 {
@@ -39,7 +42,13 @@ public:
     FileWatchLinux& FilterByFilename(Behavior b, const std::string &name);
 
     template<typename Func>
-    FileWatchLinux& OnCreated(Func f);
+    FileWatchLinux& OnCreate(Func f);
+
+    template <typename Func>
+    FileWatchLinux& OnDelete(Func f);
+
+    template <typename Func>
+    FileWatchLinux& OnAccess(Func f);
 
     void Start(Behavior b);
     void Stop();
@@ -106,7 +115,7 @@ FileWatchLinux& FileWatchLinux::FilterByExtension(Behavior b, const std::string 
 
 FileWatchLinux& FileWatchLinux::FilterByFilename(Behavior b, const std::string &name)
 {
-    auto filter = [&](const std::string &currentName)
+    auto filter = [&](const std::string &currentName) -> bool
     {
         const auto equal = currentName == name;
         if (b == Behavior::Include)
@@ -128,7 +137,7 @@ FileWatchLinux& FileWatchLinux::FilterByFilename(Behavior b, const std::string &
 }
 
 template<typename Func>
-FileWatchLinux& FileWatchLinux::OnCreated(Func f)
+FileWatchLinux& FileWatchLinux::OnCreate(Func f)
 {
     detailMap[currentPath].actionMap[IN_CREATE] = std::move(f);
 
@@ -163,6 +172,20 @@ void FileWatchLinux::Start(Behavior b)
                         r.second.actionMap[IN_CREATE](name);
                     }
                 }
+                else if (event->mask & IN_DELETE)
+                {
+                    for (auto &r : detailMap)
+                    {
+                        r.second.actionMap[IN_DELETE](name);
+                    }
+                }
+                else if (event->mask & IN_ACCESS)
+                {
+                    for (auto &r : detailMap)
+                    {
+                        r.second.actionMap[IN_ACCESS](name);
+                    }
+                }
                 p += sizeof(inotify_event) + event->len;
             }
         }
@@ -190,13 +213,30 @@ void FileWatchLinux::Stop()
     running = false;
 }
 
+template <typename Func>
+FileWatchLinux &FileWatchLinux::OnDelete(Func f)
+{
+    detailMap[currentPath].actionMap[IN_DELETE] = std::move(f);
+
+    return *this;
+}
+
+template <typename Func>
+FileWatchLinux &FileWatchLinux::OnAccess(Func f)
+{
+    detailMap[currentPath].actionMap[IN_ACCESS] = std::move(f);
+
+    return *this;}
+
 int main()
 {
     FileWatchLinux fileWatch{};
     fileWatch.Watch("/home/crablet/桌面/test/")
-             .FilterByExtension(Behavior::Include, ".txt")
-             .OnCreated([](const std::string &name) { std::cout << name << '\n'; })
+            .FilterByExtension(Behavior::Include, ".txt")
+            .OnCreate([](const std::string &name)
+                      { std::cout << name << '\n'; })
              .Start(Behavior::Normal);
+    std::this_thread::sleep_for(1min);
     fileWatch.Stop();
 
     return 0;
