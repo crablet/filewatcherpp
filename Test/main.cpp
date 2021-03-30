@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <utility>
 #include <functional>
+#include <thread>
+#include <atomic>
 
 #include <sys/inotify.h>
 #include <unistd.h>
@@ -40,6 +42,7 @@ public:
     FileWatchLinux& OnCreated(Func f);
 
     void Start(Behavior b);
+    void Stop();
 
 private:
     std::vector<std::string> watchVec;
@@ -47,7 +50,7 @@ private:
     std::vector<int> wdVec;
     int fd;
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
-    bool running;
+    std::atomic_bool running;
 };
 
 FileWatchLinux& FileWatchLinux::Watch(const std::string &path)
@@ -141,29 +144,34 @@ void FileWatchLinux::Start(Behavior b)
 
     currentPath.clear();
 
-    running = true;
-    while (running)
+    std::thread filewatcherThread(
+    [&]()
     {
-        char buffer[(sizeof(inotify_event) + 16)] = { 0 };
-        auto numRead = read(fd, buffer, sizeof(buffer));
-        for (char *p = buffer; p < buffer + numRead; )
+        running = true;
+        while (running)
         {
-            auto *event = reinterpret_cast<inotify_event*>(p);
-            std::string name{event->name, event->len};
-            if (event->mask & IN_CREATE)
+            char buffer[(sizeof(inotify_event) + 16)] = { 0 };
+            auto numRead = read(fd, buffer, sizeof(buffer));
+            for (char *p = buffer; p < buffer + numRead; )
             {
-                for (auto &r : detailMap)
+                auto *event = reinterpret_cast<inotify_event*>(p);
+                std::string name{event->name, event->len};
+                if (event->mask & IN_CREATE)
                 {
-                    r.second.actionMap[IN_CREATE](name);
+                    for (auto &r : detailMap)
+                    {
+                        r.second.actionMap[IN_CREATE](name);
+                    }
                 }
+                p += sizeof(inotify_event) + event->len;
             }
-            p += sizeof(inotify_event) + event->len;
         }
-    }
+    });
+    filewatcherThread.detach();
 }
 
 FileWatchLinux::FileWatchLinux()
-        : fd(inotify_init()), running(false)
+        : fd{inotify_init()}, running{false}
 {
 }
 
@@ -177,6 +185,11 @@ FileWatchLinux::~FileWatchLinux()
     close(fd);
 }
 
+void FileWatchLinux::Stop()
+{
+    running = false;
+}
+
 int main()
 {
     FileWatchLinux fileWatch{};
@@ -184,6 +197,7 @@ int main()
              .FilterByExtension(Behavior::Include, ".txt")
              .OnCreated([](const std::string &name) { std::cout << name << '\n'; })
              .Start(Behavior::Normal);
+    fileWatch.Stop();
 
     return 0;
 }
