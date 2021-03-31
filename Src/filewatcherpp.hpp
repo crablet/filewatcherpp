@@ -51,6 +51,8 @@ protected:
     std::vector<int> wdVec;
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
     std::atomic_bool running;
+
+    constexpr auto MAXNAMELEN = 320;
 };
 
 FileWatchBase& FileWatchBase::Watch(const std::string &path)
@@ -168,12 +170,12 @@ void FileWatchLinux::Start(Behavior b)
         running = true;
         while (running)
         {
-            char buffer[(sizeof(inotify_event) + 16)] = { 0 };
+            char buffer[(sizeof(inotify_event) + MAXNAMELEN)] = { 0 };
             auto numRead = read(fd, buffer, sizeof(buffer));
             for (char *p = buffer; p < buffer + numRead; )
             {
                 auto *event = reinterpret_cast<inotify_event*>(p);
-                std::string name{event->name, event->len};
+                const std::string name{event->name, event->len};
                 if (event->mask & IN_CREATE)
                 {
                     for (auto &r : detailMap)
