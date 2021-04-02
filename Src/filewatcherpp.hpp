@@ -57,7 +57,7 @@ protected:
     std::unordered_map<std::string, ActionDetails> detailMap;
     std::vector<int> wdVec;
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
-    std::atomic_bool running;
+    std::atomic_bool running;   // 控制开始和停止
 
     int option; // 通过选项来控制程序除回调函数外的其他行为
 
