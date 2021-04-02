@@ -21,6 +21,11 @@ enum class Behavior
     Normal  // 仅仅为了编译通过
 };
 
+enum class Option
+{
+    Debug = 1 << 0,
+};
+
 class FileWatchBase
 {
     struct ActionDetails
@@ -42,6 +47,8 @@ public:
     virtual FileWatchBase& OnDelete(std::function<void(const std::string)> f) = 0;
     virtual FileWatchBase& OnAccess(std::function<void(const std::string)> f) = 0;
 
+    FileWatchBase& SetOption(Option o);
+
     virtual void Start(Behavior b) = 0;
     void Stop();
 
@@ -52,7 +59,9 @@ protected:
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
     std::atomic_bool running;
 
-    constexpr auto MAXNAMELEN = 320;
+    int option; // 通过选项来控制程序除回调函数外的其他行为
+
+    constexpr static auto MAXNAMELEN = 320;
 };
 
 FileWatchBase& FileWatchBase::Watch(const std::string &path)
@@ -130,13 +139,20 @@ FileWatchBase& FileWatchBase::FilterByFilename(Behavior b, const std::string &na
 }
 
 FileWatchBase::FileWatchBase()
-        : running{false}
+        : running{false}, option{}
 {
 }
 
 void FileWatchBase::Stop()
 {
     running = false;
+}
+
+FileWatchBase &FileWatchBase::SetOption(Option o)
+{
+    option |= static_cast<int>(o);
+
+    return *this;
 }
 
 class FileWatchLinux : public FileWatchBase
@@ -157,6 +173,11 @@ private:
 
 void FileWatchLinux::Start(Behavior b)
 {
+    if (option & static_cast<int>(Option::Debug))
+    {
+        std::cout << "FileWatchLinux is starting.\n";
+    }
+
     for (const auto &r : watchVec)
     {
         wdVec.push_back(inotify_add_watch(fd, r.c_str(), IN_ALL_EVENTS));
@@ -167,6 +188,11 @@ void FileWatchLinux::Start(Behavior b)
     std::thread filewatcherThread(
     [&]()
     {
+        if (option & static_cast<int>(Option::Debug))
+        {
+            std::cout << "FileWatchLinux is running.\n";
+        }
+
         running = true;
         while (running)
         {
@@ -178,6 +204,11 @@ void FileWatchLinux::Start(Behavior b)
                 const std::string name{event->name, event->len};
                 if (event->mask & IN_CREATE)
                 {
+//                    if (option & static_cast<int>(Option::Debug))
+//                    {
+//                        std::cout << name << "created\n";
+//                    }
+
                     for (auto &r : detailMap)
                     {
                         auto fPtr = r.second.actionMap.find(IN_CREATE);
@@ -189,6 +220,11 @@ void FileWatchLinux::Start(Behavior b)
                 }
                 else if (event->mask & IN_DELETE)
                 {
+//                    if (option & static_cast<int>(Option::Debug))
+//                    {
+//                        std::cout << name << "deleted\n";
+//                    }
+
                     for (auto &r : detailMap)
                     {
                         auto fPtr = r.second.actionMap.find(IN_DELETE);
@@ -200,6 +236,11 @@ void FileWatchLinux::Start(Behavior b)
                 }
                 else if (event->mask & IN_ACCESS)
                 {
+//                    if (option & static_cast<int>(Option::Debug))
+//                    {
+//                        std::cout << name << "accessed\n";
+//                    }
+
                     for (auto &r : detailMap)
                     {
                         auto fPtr = r.second.actionMap.find(IN_ACCESS);
@@ -218,6 +259,11 @@ void FileWatchLinux::Start(Behavior b)
 
 FileWatchLinux::~FileWatchLinux()
 {
+    if (option & static_cast<int>(Option::Debug))
+    {
+        std::cout << "FileWatchLinux is closing.\n";
+    }
+
     for (const auto &r : wdVec)
     {
         inotify_rm_watch(fd, r);
