@@ -209,12 +209,12 @@ void FileWatchLinux::Start(Behavior b)
 //                        std::cout << name << "created\n";
 //                    }
 
-                    for (auto &r : detailMap)
+                    for (auto &r : detailMap)   // 遍历所有的监控目录
                     {
                         auto fPtr = r.second.actionMap.find(IN_CREATE);
-                        if (fPtr != r.second.actionMap.end())
+                        if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
                         {
-                            fPtr->second(name);
+                            fPtr->second(name); // 就去执行相应该有的反应
                         }
                     }
                 }
