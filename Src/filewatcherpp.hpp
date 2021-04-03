@@ -259,7 +259,7 @@ void FileWatchLinux::Start(Behavior b)
 
 FileWatchLinux::~FileWatchLinux()
 {
-    if (option & static_cast<int>(Option::Debug))
+    if (option & static_cast<int>(Option::Debug))   // 检测是否存在Debug选项，这个操作应该封装成函数或宏
     {
         std::cout << "FileWatchLinux is closing.\n";
     }
