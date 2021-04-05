@@ -85,15 +85,7 @@ FileWatchBase& FileWatchBase::FilterByExtension(Behavior b, const std::string &e
         {
             const auto endsWith = [&]()
             {
-                for (std::size_t i = name.size() - ext.size(); i < name.size(); ++i)
-                {
-                    if (name[i] != ext[i])
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
+                return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
             }();
 
             if (b == Behavior::Include)
@@ -201,30 +193,35 @@ void FileWatchLinux::Start(Behavior b)
             for (char *p = buffer; p < buffer + numRead; )
             {
                 auto *event = reinterpret_cast<inotify_event*>(p);
-                const std::string name{event->name, event->len};
+                std::string name{event->name, event->len};
+                name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
                 if (event->mask & IN_CREATE)
                 {
-//                    if (option & static_cast<int>(Option::Debug))
-//                    {
-//                        std::cout << name << "created\n";
-//                    }
-
                     for (auto &r : detailMap)   // 遍历所有的监控目录
                     {
                         auto fPtr = r.second.actionMap.find(IN_CREATE);
+                        auto filters = r.second.filterVec;
                         if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
                         {
-                            fPtr->second(name); // 就去执行相应该有的反应
+                            bool ok = true;
+                            for (auto &filter : filters)
+                            {
+                                if (!filter(name))
+                                {
+                                    ok = false;
+
+                                    break;
+                                }
+                            }
+                            if (ok)
+                            {
+                                fPtr->second(name); // 就去执行相应该有的反应
+                            }
                         }
                     }
                 }
                 else if (event->mask & IN_DELETE)
                 {
-//                    if (option & static_cast<int>(Option::Debug))
-//                    {
-//                        std::cout << name << "deleted\n";
-//                    }
-
                     for (auto &r : detailMap)
                     {
                         auto fPtr = r.second.actionMap.find(IN_DELETE);
@@ -236,11 +233,6 @@ void FileWatchLinux::Start(Behavior b)
                 }
                 else if (event->mask & IN_ACCESS)
                 {
-//                    if (option & static_cast<int>(Option::Debug))
-//                    {
-//                        std::cout << name << "accessed\n";
-//                    }
-
                     for (auto &r : detailMap)
                     {
                         auto fPtr = r.second.actionMap.find(IN_ACCESS);

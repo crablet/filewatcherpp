@@ -11,13 +11,13 @@ using namespace std::literals;
 int main()
 {
     FileWatchLinux fileWatch{};
-    fileWatch.Watch("/home/chenqi31/桌面/test/")
+    fileWatch.Watch("/home/crablet/桌面/test/")
              .FilterByExtension(Behavior::Include, ".txt")
              .OnCreate([](const std::string &name)
                       { std::cout << name << '\n'; })
              .SetOption(Option::Debug)
              .Start(Behavior::Normal);
-    std::this_thread::sleep_for(2min);
+    std::this_thread::sleep_for(5min);
     fileWatch.Stop();
 
     return 0;
