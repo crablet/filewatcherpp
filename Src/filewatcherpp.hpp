@@ -194,54 +194,41 @@ void FileWatchLinux::Start(Behavior b)
             {
                 auto *event = reinterpret_cast<inotify_event*>(p);
                 std::string name{event->name, event->len};
-                name.erase(std::find(name.begin(), name.end(), '\0'), name.end());
-                if (event->mask & IN_CREATE)
-                {
-                    for (auto &r : detailMap)   // 遍历所有的监控目录
-                    {
-                        auto fPtr = r.second.actionMap.find(IN_CREATE);
-                        auto filters = r.second.filterVec;
-                        if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
-                        {
-                            bool ok = true;
-                            for (auto &filter : filters)
-                            {
-                                if (!filter(name))
-                                {
-                                    ok = false;
+                name.erase(std::find(name.begin(), name.end(), '\0'), name.end());  // 删除末尾所有多余的\0
 
-                                    break;
+                auto eventMaskAction = [&](int eventMask)
+                {
+                    if (event->mask & eventMask)
+                    {
+                        for (auto &r : detailMap)   // 遍历所有的监控目录
+                        {
+                            auto fPtr = r.second.actionMap.find(eventMask);
+                            auto filters = r.second.filterVec;
+                            if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
+                            {
+                                bool ok = true;
+                                for (auto &filter : filters)    // 遍历所有的过滤器，令过滤器返回true是需要保留的数据
+                                {
+                                    if (!filter(name))
+                                    {
+                                        ok = false;
+
+                                        break;
+                                    }
+                                }
+                                if (ok)
+                                {
+                                    fPtr->second(name); // 就去执行相应该有的反应
                                 }
                             }
-                            if (ok)
-                            {
-                                fPtr->second(name); // 就去执行相应该有的反应
-                            }
                         }
                     }
-                }
-                else if (event->mask & IN_DELETE)
-                {
-                    for (auto &r : detailMap)
-                    {
-                        auto fPtr = r.second.actionMap.find(IN_DELETE);
-                        if (fPtr != r.second.actionMap.end())
-                        {
-                            fPtr->second(name);
-                        }
-                    }
-                }
-                else if (event->mask & IN_ACCESS)
-                {
-                    for (auto &r : detailMap)
-                    {
-                        auto fPtr = r.second.actionMap.find(IN_ACCESS);
-                        if (fPtr != r.second.actionMap.end())
-                        {
-                            fPtr->second(name);
-                        }
-                    }
-                }
+                };
+
+                eventMaskAction(IN_CREATE);
+                eventMaskAction(IN_DELETE);
+                eventMaskAction(IN_ACCESS);
+
                 p += sizeof(inotify_event) + event->len;
             }
         }
