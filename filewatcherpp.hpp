@@ -76,7 +76,7 @@ protected:
 
     int option; // 通过选项来控制程序除回调函数外的其他行为
 
-    constexpr static auto MAXNAMELEN = 320;
+    constexpr static auto MAXNAMELEN = 320; // 被监控文件的最大长度
 };
 
 FileWatchBase& FileWatchBase::Watch(const std::string &path)
