@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 -Wall")
 link_libraries(pthread)
 
 set(SOURCES
-        Src/filewatcherpp.hpp)
+        filewatcherpp.hpp)
 include_directories(./Test ./Src)
 
 aux_source_directory(./Test DIR_SRC)

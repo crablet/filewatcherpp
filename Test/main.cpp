@@ -4,7 +4,7 @@
 
 #include <chrono>
 
-#include "filewatcherpp.hpp"
+#include "../filewatcherpp.hpp"
 
 using namespace std::literals;
 
