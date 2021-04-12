@@ -70,7 +70,7 @@ public:
 protected:
     std::vector<std::string> watchVec;  // 被监控的路径名的集合
     std::unordered_map<std::string, ActionDetails> detailMap;   // key: 被监控的路径名; value: 被监控的地方有事件了可能会执行的操作
-    std::vector<int> wdVec;
+    std::vector<int> wdVec;     // 观察返回的wd的集合
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
     std::atomic_bool running;   // 控制开始和停止
 
