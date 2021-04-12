@@ -64,7 +64,7 @@ public:
 
     FileWatchBase& SetOption(Option o);
 
-    virtual void Start(Behavior b) = 0;
+    virtual void Start(Behavior b) = 0; // 根据Bahavior的行为开始观察
     void Stop();
 
 protected:
