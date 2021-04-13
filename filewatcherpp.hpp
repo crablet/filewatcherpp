@@ -41,7 +41,7 @@ enum class Option
     Debug = 1 << 0,
 };
 
-class FileWatchBase
+class FileWatcherBase
 {
     struct ActionDetails
     {
@@ -51,18 +51,18 @@ class FileWatchBase
     };
 
 public:
-    FileWatchBase();
-    virtual ~FileWatchBase() = default;
+    FileWatcherBase();
+    virtual ~FileWatcherBase() = default;
 
-    FileWatchBase& Watch(const std::string &path);
-    FileWatchBase& FilterByExtension(Behavior b, const std::string &ext);
-    FileWatchBase& FilterByFilename(Behavior b, const std::string &name);
+    FileWatcherBase& Watch(const std::string &path);
+    FileWatcherBase& FilterByExtension(Behavior b, const std::string &ext);
+    FileWatcherBase& FilterByFilename(Behavior b, const std::string &name);
 
-    virtual FileWatchBase& OnCreate(std::function<void(const std::string)> f) = 0;
-    virtual FileWatchBase& OnDelete(std::function<void(const std::string)> f) = 0;
-    virtual FileWatchBase& OnAccess(std::function<void(const std::string)> f) = 0;
+    virtual FileWatcherBase& OnCreate(std::function<void(const std::string)> f) = 0;
+    virtual FileWatcherBase& OnDelete(std::function<void(const std::string)> f) = 0;
+    virtual FileWatcherBase& OnAccess(std::function<void(const std::string)> f) = 0;
 
-    FileWatchBase& SetOption(Option o);
+    FileWatcherBase& SetOption(Option o);
 
     virtual void Start(Behavior b) = 0; // 根据Bahavior的行为开始观察
     void Stop();
@@ -79,7 +79,7 @@ protected:
     constexpr static auto MAXNAMELEN = 320; // 被监控文件的最大长度
 };
 
-FileWatchBase& FileWatchBase::Watch(const std::string &path)
+FileWatcherBase& FileWatcherBase::Watch(const std::string &path)
 {
     watchVec.push_back(path);
     detailMap[path].name = path;
@@ -88,7 +88,7 @@ FileWatchBase& FileWatchBase::Watch(const std::string &path)
     return *this;
 }
 
-FileWatchBase& FileWatchBase::FilterByExtension(Behavior b, const std::string &ext)
+FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, const std::string &ext)
 {
     auto filter = [&](const std::string &name) -> bool
     {
@@ -119,7 +119,7 @@ FileWatchBase& FileWatchBase::FilterByExtension(Behavior b, const std::string &e
     return *this;
 }
 
-FileWatchBase& FileWatchBase::FilterByFilename(Behavior b, const std::string &name)
+FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, const std::string &name)
 {
     auto filter = [&](const std::string &currentName) -> bool
     {
@@ -142,32 +142,32 @@ FileWatchBase& FileWatchBase::FilterByFilename(Behavior b, const std::string &na
     return *this;
 }
 
-FileWatchBase::FileWatchBase()
+FileWatcherBase::FileWatcherBase()
         : running{false}, option{}
 {
 }
 
-void FileWatchBase::Stop()
+void FileWatcherBase::Stop()
 {
     running = false;
 }
 
-FileWatchBase &FileWatchBase::SetOption(Option o)
+FileWatcherBase &FileWatcherBase::SetOption(Option o)
 {
     option |= static_cast<int>(o);
 
     return *this;
 }
 
-class FileWatchLinux : public FileWatchBase
+class FileWatcherLinux : public FileWatcherBase
 {
 public:
-    FileWatchLinux();
-    ~FileWatchLinux() override;
+    FileWatcherLinux();
+    ~FileWatcherLinux() override;
 
-    FileWatchBase& OnCreate(std::function<void(const std::string)> f) override;
-    FileWatchBase& OnDelete(std::function<void(const std::string)> f) override;
-    FileWatchBase& OnAccess(std::function<void(const std::string)> f) override;
+    FileWatcherBase& OnCreate(std::function<void(const std::string)> f) override;
+    FileWatcherBase& OnDelete(std::function<void(const std::string)> f) override;
+    FileWatcherBase& OnAccess(std::function<void(const std::string)> f) override;
 
     void Start(Behavior b) override;
 
@@ -175,11 +175,11 @@ private:
     int fd;
 };
 
-void FileWatchLinux::Start(Behavior b)
+void FileWatcherLinux::Start(Behavior b)
 {
     if (option & static_cast<int>(Option::Debug))
     {
-        std::cout << "FileWatchLinux is starting.\n";
+        std::cout << "FileWatcherLinux is starting.\n";
     }
 
     for (const auto &r : watchVec)
@@ -194,7 +194,7 @@ void FileWatchLinux::Start(Behavior b)
     {
         if (option & static_cast<int>(Option::Debug))
         {
-            std::cout << "FileWatchLinux is running.\n";
+            std::cout << "FileWatcherLinux is running.\n";
         }
 
         running = true;
@@ -248,11 +248,11 @@ void FileWatchLinux::Start(Behavior b)
     filewatcherThread.detach();
 }
 
-FileWatchLinux::~FileWatchLinux()
+FileWatcherLinux::~FileWatcherLinux()
 {
     if (option & static_cast<int>(Option::Debug))   // 检测是否存在Debug选项，这个操作应该封装成函数或宏
     {
-        std::cout << "FileWatchLinux is closing.\n";
+        std::cout << "FileWatcherLinux is closing.\n";
     }
 
     for (const auto &r : wdVec)
@@ -263,28 +263,28 @@ FileWatchLinux::~FileWatchLinux()
     close(fd);
 }
 
-FileWatchBase& FileWatchLinux::OnCreate(std::function<void(const std::string)> f)
+FileWatcherBase& FileWatcherLinux::OnCreate(std::function<void(const std::string)> f)
 {
     detailMap[currentPath].actionMap[IN_CREATE] = std::move(f);
 
     return *this;
 }
 
-FileWatchBase& FileWatchLinux::OnDelete(std::function<void(const std::string)> f)
+FileWatcherBase& FileWatcherLinux::OnDelete(std::function<void(const std::string)> f)
 {
     detailMap[currentPath].actionMap[IN_DELETE] = std::move(f);
 
     return *this;
 }
 
-FileWatchBase& FileWatchLinux::OnAccess(std::function<void(const std::string)> f)
+FileWatcherBase& FileWatcherLinux::OnAccess(std::function<void(const std::string)> f)
 {
     detailMap[currentPath].actionMap[IN_ACCESS] = std::move(f);
 
     return *this;
 }
 
-FileWatchLinux::FileWatchLinux()
+FileWatcherLinux::FileWatcherLinux()
         : fd{inotify_init()}
 {
 }

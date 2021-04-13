@@ -15,15 +15,15 @@ using namespace std::literals;
 
 int main()
 {
-    FileWatchLinux fileWatch{};
-    fileWatch.Watch("path/to/watch")
-             .FilterByExtension(Behavior::Include, ".txt")
-             .OnCreate([](const std::string &name)
-                      { std::cout << name << '\n'; })
-             .SetOption(Option::Debug)
-             .Start(Behavior::Normal);
+    FileWatcherLinux fileWatcher{};
+    fileWatcher.Watch("path/to/watch")
+               .FilterByExtension(Behavior::Include, ".txt")
+               .OnCreate([](const std::string &name)
+                        { std::cout << name << '\n'; })
+               .SetOption(Option::Debug)
+               .Start(Behavior::Normal);
     std::this_thread::sleep_for(5min);
-    fileWatch.Stop();
+    fileWatcher.Stop();
 
     return 0;
 }
