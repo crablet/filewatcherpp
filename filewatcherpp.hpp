@@ -98,10 +98,7 @@ FileWatchBase& FileWatchBase::FilterByExtension(Behavior b, const std::string &e
         }
         else
         {
-            const auto endsWith = [&]()
-            {
-                return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
-            }();
+            const auto endsWith = name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
 
             if (b == Behavior::Include)
             {
@@ -113,7 +110,7 @@ FileWatchBase& FileWatchBase::FilterByExtension(Behavior b, const std::string &e
             }
             else
             {
-                return false;   // 暂时未写
+                return false;   // 这里应该会报错
             }
         }
     };
