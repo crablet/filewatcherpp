@@ -58,7 +58,9 @@ public:
 
     FileWatcherBase& Watch(const std::string &path);
     FileWatcherBase& FilterByExtension(Behavior b, const std::string &ext);
+    FileWatcherBase& FilterByExtension(Behavior b, std::initializer_list<std::string> extList);
     FileWatcherBase& FilterByFilename(Behavior b, const std::string &name);
+    FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
     virtual FileWatcherBase& OnCreate(std::function<void(const std::string)> f) = 0;
     virtual FileWatcherBase& OnDelete(std::function<void(const std::string)> f) = 0;
@@ -167,6 +169,86 @@ void FileWatcherBase::Stop()
 FileWatcherBase &FileWatcherBase::SetOption(Option o)
 {
     option |= static_cast<int>(o);
+
+    return *this;
+}
+
+FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer_list<std::string> extList)
+{
+    auto filter = [&](const std::string &name) -> bool
+    {
+        for (const auto &ext : extList)
+        {
+            if (name.size() < ext.size())
+            {
+                continue;
+            }
+            else
+            {
+                const auto endsWith = name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
+
+                if (b == Behavior::Include)
+                {
+                    if (endsWith)
+                    {
+                        return true;
+                    }
+                }
+                else if (b == Behavior::Exclude)
+                {
+                    if (!endsWith)
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    // 这里应该会报错
+                }
+            }
+        }
+        return false;
+    };
+    detailMap[currentPath].filterVec.emplace_back(filter);
+
+    return *this;
+}
+
+FileWatcherBase &FileWatcherBase::FilterByFilename(Behavior b, std::initializer_list<std::string> nameList)
+{
+    auto filter = [&](const std::string &currentName) -> bool
+    {
+        const auto equal = std::any_of(nameList.begin(), nameList.end(), [&](const std::string &name)
+                           {
+                               return currentName == name;
+                           });
+        const auto include = std::any_of(nameList.begin(), nameList.end(), [&](const std::string &name)
+                             {
+                                 return currentName.find(name) != std::string::npos;
+                             });
+
+        if (b == Behavior::Include)
+        {
+            return include;
+        }
+        else if (b == Behavior::Exclude)
+        {
+            return !include;
+        }
+        else if (b == Behavior::Equal)
+        {
+            return equal;
+        }
+        else if (b == Behavior::Unequal)
+        {
+            return !equal;
+        }
+        else
+        {
+            return false;
+        }
+    };
+    detailMap[currentPath].filterVec.emplace_back(filter);
 
     return *this;
 }
