@@ -33,6 +33,8 @@ enum class Behavior
 {
     Include,
     Exclude,
+    Equal,
+    Unequal,
     Normal  // 仅仅为了编译通过
 };
 
@@ -124,11 +126,21 @@ FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, const std::string
     auto filter = [&](const std::string &currentName) -> bool
     {
         const auto equal = currentName == name;
+        const auto include = currentName.find(name) != std::string::npos;
+
         if (b == Behavior::Include)
+        {
+            return include;
+        }
+        else if (b == Behavior::Exclude)
+        {
+            return !include;
+        }
+        else if (b == Behavior::Equal)
         {
             return equal;
         }
-        else if (b == Behavior::Exclude)
+        else if (b == Behavior::Unequal)
         {
             return !equal;
         }
