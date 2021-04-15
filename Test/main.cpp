@@ -13,6 +13,7 @@ int main()
     FileWatcherLinux fileWatcher{};
     fileWatcher.Watch("/home/crablet/桌面/test/")
                .FilterByExtension(Behavior::Include, ".txt")
+               .FilterByExtension(Behavior::Include, { ".exe", ".jpg", ".pdf" })
                .OnCreate([](const std::string &name)
                         { std::cout << name << '\n'; })
                .SetOption(Option::Debug)

@@ -194,7 +194,7 @@ FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer
                         return true;
                     }
                 }
-                else if (b == Behavior::Exclude)
+                else if (b == Behavior::Exclude)    // FIXME: 不是只要有一个不符合就返回true的，这个逻辑有问题
                 {
                     if (!endsWith)
                     {
@@ -312,12 +312,12 @@ void FileWatcherLinux::Start(Behavior b)
                             auto filters = r.second.filterVec;
                             if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
                             {
-                                bool ok = true;
-                                for (auto &filter : filters)    // 遍历所有的过滤器，令过滤器返回true是需要保留的数据
+                                bool ok = false;
+                                for (auto &filter : filters)    // 遍历所有的过滤器，只要有过滤器返回true即接受
                                 {
-                                    if (!filter(name))
+                                    if (filter(name))
                                     {
-                                        ok = false;
+                                        ok = true;
 
                                         break;
                                     }
