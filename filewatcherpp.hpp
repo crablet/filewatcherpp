@@ -173,6 +173,7 @@ FileWatcherBase &FileWatcherBase::SetOption(Option o)
     return *this;
 }
 
+// TODO: 后面不应该由filter直接捕获列表，而是在类中保存几个std::vector<std::string>或类似的容器然后Inlcude加，Exclude减，最后计算出要留下的文件
 FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer_list<std::string> extList)
 {
     auto filter = [&](const std::string &name) -> bool
