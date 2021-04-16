@@ -56,6 +56,7 @@ public:
     FileWatcherBase();
     virtual ~FileWatcherBase() = default;
 
+    // 添加path进入观察队列
     FileWatcherBase& Watch(const std::string &path);
     FileWatcherBase& FilterByExtension(Behavior b, const std::string &ext);
     FileWatcherBase& FilterByExtension(Behavior b, std::initializer_list<std::string> extList);
