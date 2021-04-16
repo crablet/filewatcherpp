@@ -58,8 +58,13 @@ public:
 
     // 添加path进入观察队列
     FileWatcherBase& Watch(const std::string &path);
+
+    // 根据b确定的行为过滤带有特定后缀的文件
     FileWatcherBase& FilterByExtension(Behavior b, const std::string &ext);
+
+    // 根据b确定的行为过滤带有特定后缀的文件
     FileWatcherBase& FilterByExtension(Behavior b, std::initializer_list<std::string> extList);
+
     FileWatcherBase& FilterByFilename(Behavior b, const std::string &name);
     FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
