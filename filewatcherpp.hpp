@@ -67,6 +67,8 @@ public:
 
     // 根据b确定的行为过滤带有特定名称的文件
     FileWatcherBase& FilterByFilename(Behavior b, const std::string &name);
+
+    // 根据b确定的行为过滤带有特定名称的文件
     FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
     virtual FileWatcherBase& OnCreate(std::function<void(const std::string)> f) = 0;
