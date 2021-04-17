@@ -65,6 +65,7 @@ public:
     // 根据b确定的行为过滤带有特定后缀的文件
     FileWatcherBase& FilterByExtension(Behavior b, std::initializer_list<std::string> extList);
 
+    // 根据b确定的行为过滤带有特定名称的文件
     FileWatcherBase& FilterByFilename(Behavior b, const std::string &name);
     FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
