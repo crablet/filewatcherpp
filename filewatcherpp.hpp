@@ -73,6 +73,8 @@ public:
 
     // 当被观察文件（夹）有创建动作时会执行回调函数f
     virtual FileWatcherBase& OnCreate(std::function<void(const std::string)> f) = 0;
+
+    // 当被观察文件（夹）有删除动作时会执行回调函数f
     virtual FileWatcherBase& OnDelete(std::function<void(const std::string)> f) = 0;
     virtual FileWatcherBase& OnAccess(std::function<void(const std::string)> f) = 0;
 
