@@ -71,6 +71,7 @@ public:
     // 根据b确定的行为过滤带有特定名称的文件
     FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
+    // 当被观察文件（夹）有创建动作时会执行回调函数f
     virtual FileWatcherBase& OnCreate(std::function<void(const std::string)> f) = 0;
     virtual FileWatcherBase& OnDelete(std::function<void(const std::string)> f) = 0;
     virtual FileWatcherBase& OnAccess(std::function<void(const std::string)> f) = 0;
