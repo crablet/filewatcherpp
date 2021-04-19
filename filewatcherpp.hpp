@@ -92,6 +92,10 @@ protected:
 
     std::vector<std::string> extInclude;    // 过滤器要留下的扩展名
     std::vector<std::string> extExclude;    // 过滤器要排除的扩展名
+    std::vector<std::string> nameInclude;   // 过滤器要留下的文件名
+    std::vector<std::string> nameExclude;   // 过滤器要排除的文件名
+    std::vector<std::string> nameEqual;     // 过滤器要留下的文件名
+    std::vector<std::string> nameUnequal;   // 过滤器要排除的文件名
 
     int option; // 通过选项来控制程序除回调函数外的其他行为
 
