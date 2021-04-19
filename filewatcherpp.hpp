@@ -90,6 +90,9 @@ protected:
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
     std::atomic_bool running;   // 控制开始和停止
 
+    std::vector<std::string> extInclude;    // 过滤器要留下的扩展名
+    std::vector<std::string> extExclude;    // 过滤器要排除的扩展名
+
     int option; // 通过选项来控制程序除回调函数外的其他行为
 
     constexpr static auto MAXNAMELEN = 320; // 被监控文件的最大长度
