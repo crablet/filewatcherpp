@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <functional>
 #include <thread>
@@ -50,6 +51,15 @@ class FileWatcherBase
         std::string name;
         std::vector<std::function<bool(const std::string&)>> filterVec;
         std::unordered_map<int, std::function<void(const std::string&)>> actionMap;
+
+        std::unordered_set<std::string> extInclude;    // 过滤器要留下的扩展名
+        std::unordered_set<std::string> extExclude;    // 过滤器要排除的扩展名
+        std::unordered_set<std::string> nameInclude;   // 过滤器要留下的文件名
+        std::unordered_set<std::string> nameExclude;   // 过滤器要排除的文件名
+        std::unordered_set<std::string> nameEqual;     // 过滤器要留下的文件名
+        std::unordered_set<std::string> nameUnequal;   // 过滤器要排除的文件名
+
+        bool DoFilterByExtension(const std::string &name);
     };
 
 public:
@@ -89,13 +99,6 @@ protected:
     std::vector<int> wdVec;     // 观察返回的wd的集合
     std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
     std::atomic_bool running;   // 控制开始和停止
-
-    std::vector<std::string> extInclude;    // 过滤器要留下的扩展名
-    std::vector<std::string> extExclude;    // 过滤器要排除的扩展名
-    std::vector<std::string> nameInclude;   // 过滤器要留下的文件名
-    std::vector<std::string> nameExclude;   // 过滤器要排除的文件名
-    std::vector<std::string> nameEqual;     // 过滤器要留下的文件名
-    std::vector<std::string> nameUnequal;   // 过滤器要排除的文件名
 
     int option; // 通过选项来控制程序除回调函数外的其他行为
 
@@ -273,6 +276,20 @@ FileWatcherBase &FileWatcherBase::FilterByFilename(Behavior b, std::initializer_
     return *this;
 }
 
+bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name)
+{
+    return std::any_of(extInclude.cbegin(), extInclude.cend(),
+                       [&](const std::string &ext)
+                       {
+                           return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
+                       })
+       && std::all_of(extExclude.cbegin(), extExclude.cend(),
+                      [&](const std::string &ext)
+                      {
+                          return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
+                      });
+}
+
 class FileWatcherLinux : public FileWatcherBase
 {
 public:
@@ -332,16 +349,13 @@ void FileWatcherLinux::Start(Behavior b)
                             auto filters = r.second.filterVec;
                             if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
                             {
-                                bool ok = false;
-                                for (auto &filter : filters)    // 遍历所有的过滤器，只要有过滤器返回true即接受
-                                {
-                                    if (filter(name))
-                                    {
-                                        ok = true;
-
-                                        break;
-                                    }
-                                }
+                                // 遍历所有的过滤器，只要有过滤器返回true即接受
+                                bool ok = std::any_of(filters.begin(), filters.end(),
+                                                      [&](auto &f)
+                                                      {
+                                                          return f(name);
+                                                      });
+                                ok &= r.second.DoFilterByExtension(name);
                                 if (ok)
                                 {
                                     fPtr->second(name); // 就去执行相应该有的反应
