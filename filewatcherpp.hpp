@@ -116,31 +116,44 @@ FileWatcherBase& FileWatcherBase::Watch(const std::string &path)
 
 FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, const std::string &ext)
 {
-    auto filter = [&](const std::string &name) -> bool
+    switch (b)
     {
-        if (name.size() < ext.size())
-        {
-            return false;
-        }
-        else
-        {
-            const auto endsWith = name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
+        case Behavior::Include:
+            detailMap[currentPath].extInclude.insert(ext);
 
-            if (b == Behavior::Include)
-            {
-                return endsWith;
-            }
-            else if (b == Behavior::Exclude)
-            {
-                return !endsWith;
-            }
-            else
-            {
-                return false;   // 这里应该会报错
-            }
-        }
-    };
-    detailMap[currentPath].filterVec.emplace_back(filter);
+            break;
+
+        case Behavior::Exclude:
+            detailMap[currentPath].extExclude.insert(ext);
+
+            break;
+
+        default:
+            // 报错
+            break;
+    }
+
+    return *this;
+}
+
+FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer_list<std::string> extList)
+{
+    switch (b)
+    {
+        case Behavior::Include:
+            detailMap[currentPath].extInclude.insert(extList);
+
+            break;
+
+        case Behavior::Exclude:
+            detailMap[currentPath].extExclude.insert(extList);
+
+            break;
+
+        default:
+            // 报错
+            break;
+    }
 
     return *this;
 }
@@ -191,48 +204,6 @@ void FileWatcherBase::Stop()
 FileWatcherBase &FileWatcherBase::SetOption(Option o)
 {
     option |= static_cast<int>(o);
-
-    return *this;
-}
-
-// TODO: 后面不应该由filter直接捕获列表，而是在类中保存几个std::vector<std::string>或类似的容器然后Inlcude加，Exclude减，最后计算出要留下的文件
-FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer_list<std::string> extList)
-{
-    auto filter = [&](const std::string &name) -> bool
-    {
-        for (const auto &ext : extList)
-        {
-            if (name.size() < ext.size())
-            {
-                continue;
-            }
-            else
-            {
-                const auto endsWith = name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
-
-                if (b == Behavior::Include)
-                {
-                    if (endsWith)
-                    {
-                        return true;
-                    }
-                }
-                else if (b == Behavior::Exclude)    // FIXME: 不是只要有一个不符合就返回true的，这个逻辑有问题
-                {
-                    if (!endsWith)
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    // 这里应该会报错
-                }
-            }
-        }
-        return false;
-    };
-    detailMap[currentPath].filterVec.emplace_back(filter);
 
     return *this;
 }
