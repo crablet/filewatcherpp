@@ -326,7 +326,7 @@ void FileWatcherLinux::Start(Behavior b)
                                                       {
                                                           return f(name);
                                                       });
-                                ok &= r.second.DoFilterByExtension(name);
+                                ok |= r.second.DoFilterByExtension(name);
                                 if (ok)
                                 {
                                     fPtr->second(name); // 就去执行相应该有的反应

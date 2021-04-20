@@ -11,7 +11,7 @@ using namespace std::literals;
 int main()
 {
     FileWatcherLinux fileWatcher{};
-    fileWatcher.Watch("/home/crablet/桌面/test/")
+    fileWatcher.Watch("/home/chenqi31/桌面/test/")
                .FilterByExtension(Behavior::Include, ".txt")
                .FilterByExtension(Behavior::Include, { ".exe", ".jpg", ".pdf" })
                .OnCreate([](const std::string &name)
