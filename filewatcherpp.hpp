@@ -59,7 +59,8 @@ class FileWatcherBase
         std::unordered_set<std::string> nameEqual;     // 过滤器要留下的文件名
         std::unordered_set<std::string> nameUnequal;   // 过滤器要排除的文件名
 
-        bool DoFilterByExtension(const std::string &name);
+        bool DoFilterByExtension(const std::string &name) const;
+        bool DoFilterByName(const std::string &name) const;
     };
 
 public:
@@ -160,33 +161,33 @@ FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer
 
 FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, const std::string &name)
 {
-    auto filter = [&](const std::string &currentName) -> bool
+    switch (b)
     {
-        const auto equal = currentName == name;
-        const auto include = currentName.find(name) != std::string::npos;
+        case Behavior::Include:
+            detailMap[currentPath].nameInclude.insert(name);
 
-        if (b == Behavior::Include)
-        {
-            return include;
-        }
-        else if (b == Behavior::Exclude)
-        {
-            return !include;
-        }
-        else if (b == Behavior::Equal)
-        {
-            return equal;
-        }
-        else if (b == Behavior::Unequal)
-        {
-            return !equal;
-        }
-        else
-        {
-            return false;
-        }
-    };
-    detailMap[currentPath].filterVec.emplace_back(filter);
+            break;
+
+        case Behavior::Exclude:
+            detailMap[currentPath].nameExclude.insert(name);
+
+            break;
+
+        case Behavior::Equal:
+            detailMap[currentPath].nameEqual.insert(name);
+
+            break;
+
+        case Behavior::Unequal:
+            detailMap[currentPath].nameUnequal.insert(name);
+
+            break;
+
+        default:
+            // 报错
+
+            break;
+    }
 
     return *this;
 }
@@ -201,64 +202,83 @@ void FileWatcherBase::Stop()
     running = false;
 }
 
-FileWatcherBase &FileWatcherBase::SetOption(Option o)
+FileWatcherBase& FileWatcherBase::SetOption(Option o)
 {
     option |= static_cast<int>(o);
 
     return *this;
 }
 
-FileWatcherBase &FileWatcherBase::FilterByFilename(Behavior b, std::initializer_list<std::string> nameList)
+FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, std::initializer_list<std::string> nameList)
 {
-    auto filter = [&](const std::string &currentName) -> bool
+    switch (b)
     {
-        const auto equal = std::any_of(nameList.begin(), nameList.end(), [&](const std::string &name)
-                           {
-                               return currentName == name;
-                           });
-        const auto include = std::any_of(nameList.begin(), nameList.end(), [&](const std::string &name)
-                             {
-                                 return currentName.find(name) != std::string::npos;
-                             });
+        case Behavior::Include:
+            detailMap[currentPath].nameInclude.insert(nameList);
 
-        if (b == Behavior::Include)
-        {
-            return include;
-        }
-        else if (b == Behavior::Exclude)
-        {
-            return !include;
-        }
-        else if (b == Behavior::Equal)
-        {
-            return equal;
-        }
-        else if (b == Behavior::Unequal)
-        {
-            return !equal;
-        }
-        else
-        {
-            return false;
-        }
-    };
-    detailMap[currentPath].filterVec.emplace_back(filter);
+            break;
+
+        case Behavior::Exclude:
+            detailMap[currentPath].nameExclude.insert(nameList);
+
+            break;
+
+        case Behavior::Equal:
+            detailMap[currentPath].nameEqual.insert(nameList);
+
+            break;
+
+        case Behavior::Unequal:
+            detailMap[currentPath].nameUnequal.insert(nameList);
+
+            break;
+
+        default:
+            // 报错
+
+            break;
+    }
 
     return *this;
+
 }
 
-bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name)
+bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name) const
 {
     return std::any_of(extInclude.cbegin(), extInclude.cend(),
                        [&](const std::string &ext)
                        {
                            return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
                        })
-       && std::all_of(extExclude.cbegin(), extExclude.cend(),
+        && std::all_of(extExclude.cbegin(), extExclude.cend(),
                       [&](const std::string &ext)
                       {
                           return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
                       });
+}
+
+bool FileWatcherBase::ActionDetails::DoFilterByName(const std::string &name) const
+{
+    return std::any_of(nameInclude.cbegin(), nameInclude.cend(),
+                       [&](const std::string &nameInclude)
+                       {
+                           return name.find(nameInclude) != std::string::npos;
+                       })
+        && std::all_of(nameExclude.cbegin(), nameExclude.cend(),
+                       [&](const std::string &nameExclude)
+                       {
+                           return name.find(nameExclude) == std::string::npos;
+                       })
+        && std::any_of(nameEqual.cbegin(), nameEqual.cend(),
+                       [&](const std::string &nameEqual)
+                       {
+                           return name == nameEqual;
+                       })
+        && std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
+                       [&](const std::string &nameUnequal)
+                       {
+                           return name != nameUnequal;
+                       });
 }
 
 class FileWatcherLinux : public FileWatcherBase
@@ -325,8 +345,9 @@ void FileWatcherLinux::Start(Behavior b)
                                                       [&](auto &f)
                                                       {
                                                           return f(name);
-                                                      });
-                                ok |= r.second.DoFilterByExtension(name);
+                                                      })
+                                       || r.second.DoFilterByExtension(name)
+                                       || r.second.DoFilterByName(name);
                                 if (ok)
                                 {
                                     fPtr->second(name); // 就去执行相应该有的反应
