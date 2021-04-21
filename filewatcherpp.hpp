@@ -106,6 +106,11 @@ protected:
     constexpr static auto MAXNAMELEN = 320; // 被监控文件的最大长度
 };
 
+FileWatcherBase::FileWatcherBase()
+    : running{false}, option{}
+{
+}
+
 FileWatcherBase& FileWatcherBase::Watch(const std::string &path)
 {
     watchVec.push_back(path);
@@ -159,6 +164,20 @@ FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer
     return *this;
 }
 
+bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name) const
+{
+    return std::any_of(extInclude.cbegin(), extInclude.cend(),
+                       [&](const std::string &ext)
+                       {
+                           return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
+                       })
+           && std::all_of(extExclude.cbegin(), extExclude.cend(),
+                          [&](const std::string &ext)
+                          {
+                              return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
+                          });
+}
+
 FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, const std::string &name)
 {
     switch (b)
@@ -188,23 +207,6 @@ FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, const std::string
 
             break;
     }
-
-    return *this;
-}
-
-FileWatcherBase::FileWatcherBase()
-        : running{false}, option{}
-{
-}
-
-void FileWatcherBase::Stop()
-{
-    running = false;
-}
-
-FileWatcherBase& FileWatcherBase::SetOption(Option o)
-{
-    option |= static_cast<int>(o);
 
     return *this;
 }
@@ -243,20 +245,6 @@ FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, std::initializer_
 
 }
 
-bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name) const
-{
-    return std::any_of(extInclude.cbegin(), extInclude.cend(),
-                       [&](const std::string &ext)
-                       {
-                           return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
-                       })
-        && std::all_of(extExclude.cbegin(), extExclude.cend(),
-                      [&](const std::string &ext)
-                      {
-                          return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
-                      });
-}
-
 bool FileWatcherBase::ActionDetails::DoFilterByName(const std::string &name) const
 {
     return std::any_of(nameInclude.cbegin(), nameInclude.cend(),
@@ -264,21 +252,33 @@ bool FileWatcherBase::ActionDetails::DoFilterByName(const std::string &name) con
                        {
                            return name.find(nameInclude) != std::string::npos;
                        })
-        && std::all_of(nameExclude.cbegin(), nameExclude.cend(),
-                       [&](const std::string &nameExclude)
-                       {
-                           return name.find(nameExclude) == std::string::npos;
-                       })
-        && std::any_of(nameEqual.cbegin(), nameEqual.cend(),
-                       [&](const std::string &nameEqual)
-                       {
-                           return name == nameEqual;
-                       })
-        && std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
-                       [&](const std::string &nameUnequal)
-                       {
-                           return name != nameUnequal;
-                       });
+           && std::all_of(nameExclude.cbegin(), nameExclude.cend(),
+                          [&](const std::string &nameExclude)
+                          {
+                              return name.find(nameExclude) == std::string::npos;
+                          })
+           && std::any_of(nameEqual.cbegin(), nameEqual.cend(),
+                          [&](const std::string &nameEqual)
+                          {
+                              return name == nameEqual;
+                          })
+           && std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
+                          [&](const std::string &nameUnequal)
+                          {
+                              return name != nameUnequal;
+                          });
+}
+
+void FileWatcherBase::Stop()
+{
+    running = false;
+}
+
+FileWatcherBase& FileWatcherBase::SetOption(Option o)
+{
+    option |= static_cast<int>(o);
+
+    return *this;
 }
 
 class FileWatcherLinux : public FileWatcherBase
@@ -296,6 +296,26 @@ public:
 private:
     int fd;
 };
+
+FileWatcherLinux::FileWatcherLinux()
+    : fd{inotify_init()}
+{
+}
+
+FileWatcherLinux::~FileWatcherLinux()
+{
+    if (option & static_cast<int>(Option::Debug))   // 检测是否存在Debug选项，这个操作应该封装成函数或宏
+    {
+        std::cout << "FileWatcherLinux is closing.\n";
+    }
+
+    for (const auto &r : wdVec)
+    {
+        inotify_rm_watch(fd, r);
+    }
+
+    close(fd);
+}
 
 void FileWatcherLinux::Start(Behavior b)
 {
@@ -368,21 +388,6 @@ void FileWatcherLinux::Start(Behavior b)
     filewatcherThread.detach();
 }
 
-FileWatcherLinux::~FileWatcherLinux()
-{
-    if (option & static_cast<int>(Option::Debug))   // 检测是否存在Debug选项，这个操作应该封装成函数或宏
-    {
-        std::cout << "FileWatcherLinux is closing.\n";
-    }
-
-    for (const auto &r : wdVec)
-    {
-        inotify_rm_watch(fd, r);
-    }
-
-    close(fd);
-}
-
 FileWatcherBase& FileWatcherLinux::OnCreate(std::function<void(const std::string)> f)
 {
     detailMap[currentPath].actionMap[IN_CREATE] = std::move(f);
@@ -402,9 +407,4 @@ FileWatcherBase& FileWatcherLinux::OnAccess(std::function<void(const std::string
     detailMap[currentPath].actionMap[IN_ACCESS] = std::move(f);
 
     return *this;
-}
-
-FileWatcherLinux::FileWatcherLinux()
-        : fd{inotify_init()}
-{
 }
