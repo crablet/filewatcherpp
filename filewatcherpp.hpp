@@ -82,12 +82,14 @@ public:
     // 根据b确定的行为过滤带有特定名称的文件
     FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
+    FileWatcherBase& FilterByUserDefined(std::function<bool(const std::string&)> f);
+
     // 当被观察文件（夹）有创建动作时会执行回调函数f
-    virtual FileWatcherBase& OnCreate(std::function<void(const std::string)> f) = 0;
+    virtual FileWatcherBase& OnCreate(std::function<void(const std::string&)> f) = 0;
 
     // 当被观察文件（夹）有删除动作时会执行回调函数f
-    virtual FileWatcherBase& OnDelete(std::function<void(const std::string)> f) = 0;
-    virtual FileWatcherBase& OnAccess(std::function<void(const std::string)> f) = 0;
+    virtual FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) = 0;
+    virtual FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) = 0;
 
     FileWatcherBase& SetOption(Option o);
 
@@ -252,21 +254,21 @@ bool FileWatcherBase::ActionDetails::DoFilterByName(const std::string &name) con
                        {
                            return name.find(nameInclude) != std::string::npos;
                        })
-           && std::all_of(nameExclude.cbegin(), nameExclude.cend(),
-                          [&](const std::string &nameExclude)
-                          {
-                              return name.find(nameExclude) == std::string::npos;
-                          })
-           && std::any_of(nameEqual.cbegin(), nameEqual.cend(),
-                          [&](const std::string &nameEqual)
-                          {
-                              return name == nameEqual;
-                          })
-           && std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
-                          [&](const std::string &nameUnequal)
-                          {
-                              return name != nameUnequal;
-                          });
+        && std::all_of(nameExclude.cbegin(), nameExclude.cend(),
+                       [&](const std::string &nameExclude)
+                       {
+                           return name.find(nameExclude) == std::string::npos;
+                       })
+        && std::any_of(nameEqual.cbegin(), nameEqual.cend(),
+                       [&](const std::string &nameEqual)
+                       {
+                           return name == nameEqual;
+                       })
+        && std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
+                       [&](const std::string &nameUnequal)
+                       {
+                           return name != nameUnequal;
+                       });
 }
 
 void FileWatcherBase::Stop()
@@ -281,15 +283,22 @@ FileWatcherBase& FileWatcherBase::SetOption(Option o)
     return *this;
 }
 
+FileWatcherBase& FileWatcherBase::FilterByUserDefined(std::function<bool(const std::string&)> f)
+{
+    detailMap[currentPath].filterVec.push_back(std::move(f));
+
+    return *this;
+}
+
 class FileWatcherLinux : public FileWatcherBase
 {
 public:
     FileWatcherLinux();
     ~FileWatcherLinux() override;
 
-    FileWatcherBase& OnCreate(std::function<void(const std::string)> f) override;
-    FileWatcherBase& OnDelete(std::function<void(const std::string)> f) override;
-    FileWatcherBase& OnAccess(std::function<void(const std::string)> f) override;
+    FileWatcherBase& OnCreate(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) override;
 
     void Start(Behavior b) override;
 
@@ -388,21 +397,21 @@ void FileWatcherLinux::Start(Behavior b)
     filewatcherThread.detach();
 }
 
-FileWatcherBase& FileWatcherLinux::OnCreate(std::function<void(const std::string)> f)
+FileWatcherBase& FileWatcherLinux::OnCreate(std::function<void(const std::string&)> f)
 {
     detailMap[currentPath].actionMap[IN_CREATE] = std::move(f);
 
     return *this;
 }
 
-FileWatcherBase& FileWatcherLinux::OnDelete(std::function<void(const std::string)> f)
+FileWatcherBase& FileWatcherLinux::OnDelete(std::function<void(const std::string&)> f)
 {
     detailMap[currentPath].actionMap[IN_DELETE] = std::move(f);
 
     return *this;
 }
 
-FileWatcherBase& FileWatcherLinux::OnAccess(std::function<void(const std::string)> f)
+FileWatcherBase& FileWatcherLinux::OnAccess(std::function<void(const std::string&)> f)
 {
     detailMap[currentPath].actionMap[IN_ACCESS] = std::move(f);
 
