@@ -15,9 +15,10 @@ using namespace std::literals;
 
 int main()
 {
-    FileWatcherLinux fileWatcher{};
+    FileWatcher fileWatcher{};
     fileWatcher.Watch("path/to/watch")
                .FilterByExtension(Behavior::Include, ".txt")
+               .FilterByExtension(Behavior::Include, { ".exe", ".jpg", ".pdf" })
                .OnCreate([](const std::string &name)
                         { std::cout << name << '\n'; })
                .SetOption(Option::Debug)

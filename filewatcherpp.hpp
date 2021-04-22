@@ -244,7 +244,6 @@ FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, std::initializer_
     }
 
     return *this;
-
 }
 
 bool FileWatcherBase::ActionDetails::DoFilterByName(const std::string &name) const
@@ -417,3 +416,21 @@ FileWatcherBase& FileWatcherLinux::OnAccess(std::function<void(const std::string
 
     return *this;
 }
+
+class FileWatcherWindows : public FileWatcherBase
+{
+
+};
+
+class FileWatcherMacOS : public FileWatcherBase
+{
+
+};
+
+#if defined(__linux__) || defined(linux) || defined(__linux)
+    using FileWatcher = FileWatcherLinux;
+#elif defined(_WIN32) || defined(_WIN64)
+    using FileWatcher = FileWatcherWindows;
+#elif defined(__APPLE__) || defined(__MACH__)
+    using FileWatcher = FileWatcherMacOS;
+#endif
