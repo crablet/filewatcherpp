@@ -82,6 +82,7 @@ public:
     // 根据b确定的行为过滤带有特定名称的文件
     FileWatcherBase& FilterByFilename(Behavior b, std::initializer_list<std::string> nameList);
 
+    // 根据用户传入的函数f过滤特定的文件，f返回true则留下，返回false则不留下
     FileWatcherBase& FilterByUserDefined(std::function<bool(const std::string&)> f);
 
     // 当被观察文件（夹）有创建动作时会执行回调函数f
