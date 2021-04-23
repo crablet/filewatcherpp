@@ -171,12 +171,26 @@ bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name
     return std::any_of(extInclude.cbegin(), extInclude.cend(),
                        [&](const std::string &ext)
                        {
-                           return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
+                           if (name.size() < ext.size())
+                           {
+                               return false;
+                           }
+                           else
+                           {
+                               return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
+                           }
                        })
            && std::all_of(extExclude.cbegin(), extExclude.cend(),
                           [&](const std::string &ext)
                           {
-                              return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
+                              if (name.size() < ext.size())
+                              {
+                                  return true;
+                              }
+                              else
+                              {
+                                  return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
+                              }
                           });
 }
 
