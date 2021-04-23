@@ -19,8 +19,10 @@ int main()
     fileWatcher.Watch("path/to/watch")
                .FilterByExtension(Behavior::Include, ".txt")
                .FilterByExtension(Behavior::Include, { ".exe", ".jpg", ".pdf" })
+               .FilterByFilename(Behavior::Include, "aaa")
+               .FilterByFilename(Behavior::Equal, "bbb")
                .OnCreate([](const std::string &name)
-                        { std::cout << name << '\n'; })
+                           { std::cout << name << '\n'; })
                .SetOption(Option::Debug)
                .Start(Behavior::Normal);
     std::this_thread::sleep_for(5min);
