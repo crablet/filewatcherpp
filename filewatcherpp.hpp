@@ -60,7 +60,7 @@ class FileWatcherBase
         std::unordered_set<std::string> nameUnequal;   // 过滤器要排除的文件名
 
         bool DoFilterByExtension(const std::string &name) const;
-        bool DoFilterByName(const std::string &name) const;
+        bool DoFilterByFilename(const std::string &name) const;
     };
 
 public:
@@ -260,28 +260,35 @@ FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, std::initializer_
     return *this;
 }
 
-bool FileWatcherBase::ActionDetails::DoFilterByName(const std::string &name) const
+bool FileWatcherBase::ActionDetails::DoFilterByFilename(const std::string &name) const
 {
-    return std::any_of(nameInclude.cbegin(), nameInclude.cend(),
-                       [&](const std::string &nameInclude)
-                       {
-                           return name.find(nameInclude) != std::string::npos;
-                       })
-        && std::all_of(nameExclude.cbegin(), nameExclude.cend(),
-                       [&](const std::string &nameExclude)
-                       {
-                           return name.find(nameExclude) == std::string::npos;
-                       })
-        && std::any_of(nameEqual.cbegin(), nameEqual.cend(),
-                       [&](const std::string &nameEqual)
-                       {
-                           return name == nameEqual;
-                       })
-        && std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
-                       [&](const std::string &nameUnequal)
-                       {
-                           return name != nameUnequal;
-                       });
+    // 过滤逻辑：只留下令`(include || equal) && (exclude || unequal)`为真的数据
+    return (
+                std::any_of(nameInclude.cbegin(), nameInclude.cend(),
+                           [&](const std::string &nameInclude)
+                           {
+                               return name.find(nameInclude) != std::string::npos;
+                           })
+             ||
+                std::any_of(nameEqual.cbegin(), nameEqual.cend(),
+                            [&](const std::string &nameEqual)
+                            {
+                                return name == nameEqual;
+                            })
+           )
+        &&
+           (
+               std::all_of(nameExclude.cbegin(), nameExclude.cend(),
+                           [&](const std::string &nameExclude)
+                           {
+                               return name.find(nameExclude) == std::string::npos;
+                           })
+            || std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
+                           [&](const std::string &nameUnequal)
+                           {
+                               return name != nameUnequal;
+                           })
+          );
 }
 
 void FileWatcherBase::Stop()
@@ -389,7 +396,7 @@ void FileWatcherLinux::Start(Behavior b)
                                                           return f(name);
                                                       })
                                        || r.second.DoFilterByExtension(name)
-                                       || r.second.DoFilterByName(name);
+                                       || r.second.DoFilterByFilename(name);
                                 if (ok)
                                 {
                                     fPtr->second(name); // 就去执行相应该有的反应
