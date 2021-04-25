@@ -90,6 +90,7 @@ public:
     // 当被观察文件（夹）有删除动作时会执行回调函数f
     virtual FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) = 0;
     virtual FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) = 0;
+    virtual FileWatcherBase& OnModified(std::function<void(const std::string&)> f) = 0;
 
     FileWatcherBase& SetOption(Option o);
 
@@ -319,6 +320,7 @@ public:
     FileWatcherBase& OnCreate(std::function<void(const std::string&)> f) override;
     FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) override;
     FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnModified(std::function<void(const std::string&)> f) override;
 
     void Start(Behavior b) override;
 
@@ -434,6 +436,13 @@ FileWatcherBase& FileWatcherLinux::OnDelete(std::function<void(const std::string
 FileWatcherBase& FileWatcherLinux::OnAccess(std::function<void(const std::string&)> f)
 {
     detailMap[currentPath].actionMap[IN_ACCESS] = std::move(f);
+
+    return *this;
+}
+
+FileWatcherBase& FileWatcherLinux::OnModified(std::function<void(const std::string&)> f)
+{
+    detailMap[currentPath].actionMap[IN_MODIFY] = std::move(f);
 
     return *this;
 }
