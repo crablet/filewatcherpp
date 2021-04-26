@@ -1,4 +1,4 @@
-//    Copyright (C) 2021  Qi Chen <love4uandgzfc@gmail.com>
+﻿//    Copyright (C) 2021  Qi Chen <love4uandgzfc@gmail.com>
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -26,9 +26,24 @@
 #include <functional>
 #include <thread>
 #include <atomic>
+#include <algorithm>
 
-#include <sys/inotify.h>
-#include <unistd.h>
+class FileWatcherLinux;
+class FileWatcherWindows;
+class FileWatcherMacOS;
+
+#if defined(__linux__) || defined(linux) || defined(__linux)
+	#include <sys/inotify.h>
+	#include <unistd.h>
+
+	using FileWatcher = FileWatcherLinux;
+
+#elif defined(_WIN32) || defined(_WIN64)
+    using FileWatcher = FileWatcherWindows;
+
+#elif defined(__APPLE__) || defined(__MACH__)
+    using FileWatcher = FileWatcherMacOS;
+#endif
 
 enum class Behavior
 {
@@ -102,7 +117,8 @@ protected:
     std::vector<std::string> watchVec;  // 被监控的路径名的集合
     std::unordered_map<std::string, ActionDetails> detailMap;   // key: 被监控的路径名; value: 被监控的地方有事件了可能会执行的操作
     std::vector<int> wdVec;     // 观察返回的wd的集合
-    std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径
+    std::string currentPath;    // 暂时先这么写，存的是在初始化过程中正在初始化的路径ywnwa.11
+
     std::atomic_bool running;   // 控制开始和停止
 
     int option; // 通过选项来控制程序除回调函数外的其他行为
@@ -182,18 +198,18 @@ bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name
                                return name.compare(name.size() - ext.size(), ext.size(), ext) == 0;
                            }
                        })
-           && std::all_of(extExclude.cbegin(), extExclude.cend(),
-                          [&](const std::string &ext)
-                          {
-                              if (name.size() < ext.size())
-                              {
-                                  return true;
-                              }
-                              else
-                              {
-                                  return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
-                              }
-                          });
+        && std::all_of(extExclude.cbegin(), extExclude.cend(),
+                       [&](const std::string &ext)
+                       {
+                           if (name.size() < ext.size())
+                           {
+                               return true;
+                           }
+                           else
+                           {
+                               return name.compare(name.size() - ext.size(), ext.size(), ext) != 0;
+                           }
+                       });
 }
 
 FileWatcherBase& FileWatcherBase::FilterByFilename(Behavior b, const std::string &name)
@@ -280,16 +296,16 @@ bool FileWatcherBase::ActionDetails::DoFilterByFilename(const std::string &name)
            )
         &&
            (
-               std::all_of(nameExclude.cbegin(), nameExclude.cend(),
-                           [&](const std::string &nameExclude)
-                           {
-                               return name.find(nameExclude) == std::string::npos;
-                           })
-            || std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
-                           [&](const std::string &nameUnequal)
-                           {
-                               return name != nameUnequal;
-                           })
+                std::all_of(nameExclude.cbegin(), nameExclude.cend(),
+                            [&](const std::string &nameExclude)
+                            {
+                                return name.find(nameExclude) == std::string::npos;
+                            })
+             ||  std::all_of(nameUnequal.cbegin(), nameUnequal.cend(),
+                            [&](const std::string &nameUnequal)
+                            {
+                                return name != nameUnequal;
+                            })
           );
 }
 
@@ -312,6 +328,7 @@ FileWatcherBase& FileWatcherBase::FilterByUserDefined(std::function<bool(const s
     return *this;
 }
 
+#if defined(__linux__) || defined(linux) || defined(__linux)
 class FileWatcherLinux : public FileWatcherBase
 {
 public:
@@ -447,21 +464,61 @@ FileWatcherBase& FileWatcherLinux::OnModified(std::function<void(const std::stri
 
     return *this;
 }
+#endif
 
+#if defined(_WIN32) || defined(_WIN64)
 class FileWatcherWindows : public FileWatcherBase
 {
+public:
+	FileWatcherWindows();
+	~FileWatcherWindows() override;
 
+	FileWatcherBase& OnCreate(std::function<void(const std::string&)> f) override;
+	FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) override;
+	FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) override;
+	FileWatcherBase& OnModified(std::function<void(const std::string&)> f) override;
+
+	void Start(Behavior b) override;
 };
 
+FileWatcherWindows::FileWatcherWindows()
+{
+}
+
+FileWatcherWindows::~FileWatcherWindows()
+{
+}
+
+FileWatcherBase& FileWatcherWindows::OnCreate(std::function<void(const std::string&)> f)
+{
+	return *this;
+}
+
+FileWatcherBase& FileWatcherWindows::OnDelete(std::function<void(const std::string&)> f)
+{
+	return *this;
+}
+
+FileWatcherBase& FileWatcherWindows::OnAccess(std::function<void(const std::string&)> f)
+{
+	return *this;
+}
+
+FileWatcherBase& FileWatcherWindows::OnModified(std::function<void(const std::string&)> f)
+{
+	return *this;
+}
+
+void FileWatcherWindows::Start(Behavior b)
+{
+
+}
+
+#endif
+
+#if defined(__APPLE__) || defined(__MACH__)
 class FileWatcherMacOS : public FileWatcherBase
 {
 
 };
-
-#if defined(__linux__) || defined(linux) || defined(__linux)
-    using FileWatcher = FileWatcherLinux;
-#elif defined(_WIN32) || defined(_WIN64)
-    using FileWatcher = FileWatcherWindows;
-#elif defined(__APPLE__) || defined(__MACH__)
-    using FileWatcher = FileWatcherMacOS;
 #endif
