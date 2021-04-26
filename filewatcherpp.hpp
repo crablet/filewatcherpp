@@ -33,16 +33,20 @@ class FileWatcherWindows;
 class FileWatcherMacOS;
 
 #if defined(__linux__) || defined(linux) || defined(__linux)
-	#include <sys/inotify.h>
-	#include <unistd.h>
+#include <sys/inotify.h>
+#include <unistd.h>
 
-	using FileWatcher = FileWatcherLinux;
+using FileWatcher = FileWatcherLinux;
 
 #elif defined(_WIN32) || defined(_WIN64)
-    using FileWatcher = FileWatcherWindows;
+#include <Windows.h>
+#include <WinBase.h>
+#include <fileapi.h>
+
+using FileWatcher = FileWatcherWindows;
 
 #elif defined(__APPLE__) || defined(__MACH__)
-    using FileWatcher = FileWatcherMacOS;
+using FileWatcher = FileWatcherMacOS;
 #endif
 
 enum class Behavior
@@ -470,15 +474,15 @@ FileWatcherBase& FileWatcherLinux::OnModified(std::function<void(const std::stri
 class FileWatcherWindows : public FileWatcherBase
 {
 public:
-	FileWatcherWindows();
-	~FileWatcherWindows() override;
+    FileWatcherWindows();
+    ~FileWatcherWindows() override;
 
-	FileWatcherBase& OnCreate(std::function<void(const std::string&)> f) override;
-	FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) override;
-	FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) override;
-	FileWatcherBase& OnModified(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnCreate(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) override;
+    FileWatcherBase& OnModified(std::function<void(const std::string&)> f) override;
 
-	void Start(Behavior b) override;
+    void Start(Behavior b) override;
 };
 
 FileWatcherWindows::FileWatcherWindows()
@@ -491,22 +495,22 @@ FileWatcherWindows::~FileWatcherWindows()
 
 FileWatcherBase& FileWatcherWindows::OnCreate(std::function<void(const std::string&)> f)
 {
-	return *this;
+    return *this;
 }
 
 FileWatcherBase& FileWatcherWindows::OnDelete(std::function<void(const std::string&)> f)
 {
-	return *this;
+    return *this;
 }
 
 FileWatcherBase& FileWatcherWindows::OnAccess(std::function<void(const std::string&)> f)
 {
-	return *this;
+    return *this;
 }
 
 FileWatcherBase& FileWatcherWindows::OnModified(std::function<void(const std::string&)> f)
 {
-	return *this;
+    return *this;
 }
 
 void FileWatcherWindows::Start(Behavior b)
