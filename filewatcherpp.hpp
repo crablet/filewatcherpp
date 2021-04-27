@@ -60,7 +60,7 @@ enum class Behavior
 
 enum class Option
 {
-    Debug = 1 << 0,
+    Debug = 1 << 0, // 打开Debug模式，在控制台会有一些输出
 };
 
 class FileWatcherBase
