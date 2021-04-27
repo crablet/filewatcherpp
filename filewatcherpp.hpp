@@ -109,7 +109,11 @@ public:
 
     // 当被观察文件（夹）有删除动作时会执行回调函数f
     virtual FileWatcherBase& OnDelete(std::function<void(const std::string&)> f) = 0;
+
+    // 当被观察文件（夹）有访问动作时会执行回调函数f
     virtual FileWatcherBase& OnAccess(std::function<void(const std::string&)> f) = 0;
+
+    // 当被观察文件（夹）有修改动作时会执行回调函数f
     virtual FileWatcherBase& OnModified(std::function<void(const std::string&)> f) = 0;
 
     FileWatcherBase& SetOption(Option o);
