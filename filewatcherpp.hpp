@@ -116,6 +116,7 @@ public:
     // 当被观察文件（夹）有修改动作时会执行回调函数f
     virtual FileWatcherBase& OnModified(std::function<void(const std::string&)> f) = 0;
 
+    // 选择执行时候的选项
     FileWatcherBase& SetOption(Option o);
 
     // 根据Bahavior的行为开始观察
