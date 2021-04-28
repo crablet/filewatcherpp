@@ -118,7 +118,10 @@ public:
 
     FileWatcherBase& SetOption(Option o);
 
-    virtual void Start(Behavior b) = 0; // 根据Bahavior的行为开始观察
+    // 根据Bahavior的行为开始观察
+    virtual void Start(Behavior b) = 0; 
+
+    // 结束观察
     void Stop();
 
 protected:
