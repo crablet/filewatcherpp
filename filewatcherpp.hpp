@@ -529,6 +529,8 @@ void FileWatcherWindows::Start(Behavior b)
     }
 
     currentPath.clear();
+
+    // TODO: 如何支持多目录同时监控？Windows函数只支持单目录监控。
 }
 
 #endif
