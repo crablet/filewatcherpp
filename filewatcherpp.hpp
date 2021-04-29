@@ -523,7 +523,12 @@ FileWatcherBase& FileWatcherWindows::OnModified(std::function<void(const std::st
 
 void FileWatcherWindows::Start(Behavior b)
 {
+    if (option & static_cast<int>(Option::Debug))
+    {
+        std::cout << "FileWatcherWindows is starting.\n";
+    }
 
+    currentPath.clear();
 }
 
 #endif
