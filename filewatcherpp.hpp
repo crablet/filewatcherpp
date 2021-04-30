@@ -198,6 +198,7 @@ FileWatcherBase& FileWatcherBase::FilterByExtension(Behavior b, std::initializer
 
 bool FileWatcherBase::ActionDetails::DoFilterByExtension(const std::string &name) const
 {
+    // 过滤出使得`extInclude == false && extInclude == true`为真的文件名
     return std::any_of(extInclude.cbegin(), extInclude.cend(),
                        [&](const std::string &ext)
                        {
