@@ -145,9 +145,9 @@ FileWatcherBase::FileWatcherBase()
 
 FileWatcherBase& FileWatcherBase::Watch(const std::string &path)
 {
-    watchVec.push_back(path);
-    detailMap[path].name = path;
-    currentPath = path;
+    watchVec.push_back(path);       // 添加路径至被监控的集合
+    detailMap[path].name = path;    // 创建一个与之相关的detailMap对象，顺便记录下路径
+    currentPath = path;             // 记录下前正在处理的路径，这是暂时性的策略
 
     return *this;
 }
