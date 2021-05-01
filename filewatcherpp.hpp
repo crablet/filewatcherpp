@@ -80,6 +80,8 @@ class FileWatcherBase
 
         // 真正执行按文件扩展名过滤的函数
         bool DoFilterByExtension(const std::string &name) const;
+
+        // 真正执行按文件名过滤的函数
         bool DoFilterByFilename(const std::string &name) const;
     };
 
