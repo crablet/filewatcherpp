@@ -334,6 +334,7 @@ void FileWatcherBase::Stop()
 
 FileWatcherBase& FileWatcherBase::SetOption(Option o)
 {
+    // 添加选项全用|=运算符操作某一位
     option |= static_cast<int>(o);
 
     return *this;
