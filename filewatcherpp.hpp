@@ -78,6 +78,7 @@ class FileWatcherBase
         std::unordered_set<std::string> nameEqual;     // 过滤器要留下的文件名
         std::unordered_set<std::string> nameUnequal;   // 过滤器要排除的文件名
 
+        // 真正执行按文件扩展名过滤的函数
         bool DoFilterByExtension(const std::string &name) const;
         bool DoFilterByFilename(const std::string &name) const;
     };
