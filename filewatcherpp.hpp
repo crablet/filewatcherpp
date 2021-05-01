@@ -327,6 +327,8 @@ bool FileWatcherBase::ActionDetails::DoFilterByFilename(const std::string &name)
 
 void FileWatcherBase::Stop()
 {
+    // 暂停暂时就先令标志位为false然后线程自动退出
+    // TODO: 标志位为false后响应函数也应该及时停止，不再进入
     running = false;
 }
 
