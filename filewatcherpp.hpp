@@ -337,6 +337,8 @@ FileWatcherBase& FileWatcherBase::SetOption(Option o)
     // 添加选项全用|=运算符操作某一位
     option |= static_cast<int>(o);
 
+    // TODO: 添加一个类似UnsetOption或者RemoveOption之类的接口
+
     return *this;
 }
 
