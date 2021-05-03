@@ -344,6 +344,7 @@ FileWatcherBase& FileWatcherBase::SetOption(Option o)
 
 FileWatcherBase& FileWatcherBase::FilterByUserDefined(std::function<bool(const std::string&)> f)
 {
+    // 直接添加用户自定义的删除器到对应路径的filterVec中即可
     detailMap[currentPath].filterVec.push_back(std::move(f));
 
     return *this;
