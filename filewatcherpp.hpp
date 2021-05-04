@@ -428,9 +428,9 @@ void FileWatcherLinux::Start(Behavior b)
                         for (auto &r : detailMap)   // 遍历所有的监控目录
                         {
                             auto fPtr = r.second.actionMap.find(eventMask); // 不直接使用[]是因为[]无法判断找不到的情况
-                            auto filters = r.second.filterVec;
                             if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
                             {
+                                auto filters = r.second.filterVec;  // 所有过滤器的集合
                                 // 遍历所有的过滤器，只要有过滤器返回true即接受
                                 bool ok = std::any_of(filters.begin(), filters.end(),
                                                       [&](auto &f)
