@@ -427,7 +427,7 @@ void FileWatcherLinux::Start(Behavior b)
                     {
                         for (auto &r : detailMap)   // 遍历所有的监控目录
                         {
-                            auto fPtr = r.second.actionMap.find(eventMask);
+                            auto fPtr = r.second.actionMap.find(eventMask); // 不直接使用[]是因为[]无法判断找不到的情况
                             auto filters = r.second.filterVec;
                             if (fPtr != r.second.actionMap.end())   // 如果某个监控目录有对IN_CREATE的反应
                             {
