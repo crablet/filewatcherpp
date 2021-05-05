@@ -418,7 +418,7 @@ void FileWatcherLinux::Start(Behavior b)
             for (char *p = buffer; p < buffer + numRead; )
             {
                 auto *event = reinterpret_cast<inotify_event*>(p);
-                std::string name{event->name, event->len};
+                std::string name{event->name, event->len};  // 文件名
                 name.erase(std::find(name.begin(), name.end(), '\0'), name.end());  // 删除末尾所有多余的\0
 
                 auto eventMaskAction = [&](int eventMask)
