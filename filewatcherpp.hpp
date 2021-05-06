@@ -411,7 +411,7 @@ void FileWatcherLinux::Start(Behavior b)
         }
 
         running = true;
-        while (running)
+        while (running) // 通过running这个变量来控制线程退出
         {
             char buffer[(sizeof(inotify_event) + MAXNAMELEN)] = { 0 };
             auto numRead = read(fd, buffer, sizeof(buffer));
