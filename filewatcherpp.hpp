@@ -410,7 +410,7 @@ void FileWatcherLinux::Start(Behavior b)
             std::cout << "FileWatcherLinux is running.\n";
         }
 
-        running = true;
+        running = true; // 这个running影响的地方应该更多一些，不能仅在while条件中判断
         while (running) // 通过running这个变量来控制线程退出
         {
             char buffer[(sizeof(inotify_event) + MAXNAMELEN)] = { 0 };
