@@ -513,21 +513,29 @@ FileWatcherWindows::~FileWatcherWindows()
 
 FileWatcherBase& FileWatcherWindows::OnCreate(std::function<void(const std::string&)> f)
 {
+    detailMap[currentPath].actionMap[FILE_ACTION_ADDED] = std::move(f);
+
     return *this;
 }
 
 FileWatcherBase& FileWatcherWindows::OnDelete(std::function<void(const std::string&)> f)
 {
+    detailMap[currentPath].actionMap[FILE_ACTION_REMOVED] = std::move(f);
+
     return *this;
 }
 
 FileWatcherBase& FileWatcherWindows::OnAccess(std::function<void(const std::string&)> f)
 {
+    // 暂时无法实现，因为WindowsAPI中没有给出这个事件
+
     return *this;
 }
 
 FileWatcherBase& FileWatcherWindows::OnModified(std::function<void(const std::string&)> f)
 {
+    detailMap[currentPath].actionMap[FILE_ACTION_MODIFIED] = std::move(f);
+
     return *this;
 }
 
